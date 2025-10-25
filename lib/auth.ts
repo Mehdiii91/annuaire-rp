@@ -2,35 +2,23 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 /**
- * Lis le cookie "admin" en mode compatible Next 16 / Vercel build.
- * On gère le cas où cookies() peut être sync ou async selon le contexte.
- */
-function readAdminCookieSafe() {
-  // On récupère le résultat de cookies()
-  const maybePromise = cookies() as any;
-
-  // Si c'est une Promise (cas build/vercel), on ne peut pas l'attendre ici
-  // donc on considère "pas admin" par défaut pendant le build.
-  if (typeof maybePromise?.then === "function") {
-    return undefined;
-  }
-
-  // Ici it's fine: we are at runtime request, cookies() a rendu un objet
-  const jar = maybePromise;
-  return jar.get ? jar.get("admin") : undefined;
-}
-
-/**
- * true si admin=1, sinon false
+ * Retourne true si le cookie admin=1 est présent.
+ * On force le typage en `any` pour contourner le changement de type de cookies() en build Vercel/Next16.
  */
 export function isAdminFromCookies(): boolean {
-  const adminCookie = readAdminCookieSafe();
+  // cookies() peut être typé comme Promise<ReadonlyRequestCookies> selon le contexte,
+  // donc on cast en any pour pouvoir appeler .get sans que le build plante.
+  const jar: any = cookies() as any;
+
+  // si à l'exécution réelle jar.get existe -> on lit
+  // sinon (pendant le build) adminCookie reste undefined
+  const adminCookie = jar?.get ? jar.get("admin") : undefined;
+
   return adminCookie?.value === "1";
 }
 
 /**
- * À appeler au début d'une page admin côté serveur runtime (request time).
- * Si pas admin => redirect("/login")
+ * Protège une page admin : si pas admin -> redirect("/login")
  */
 export function protectAdminPage() {
   if (!isAdminFromCookies()) {

@@ -4,10 +4,8 @@ import TopNav from "@/components/TopNav";
 import { protectAdminPage } from "@/lib/auth";
 
 export default async function AdminPage() {
-  // bloque l'accès si pas admin
   protectAdminPage();
 
-  // récupère les groupes + membres
   const groups = await prisma.group.findMany({
     orderBy: { name: "asc" },
     include: {
