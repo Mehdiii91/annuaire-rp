@@ -1,0 +1,34 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Group {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  category  Category  @default(GANG)
+  members   Member[]
+}
+
+model Member {
+  id           Int    @id @default(autoincrement())
+  fullName     String
+  role         Role
+  characterId  String
+  group        Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId      Int
+}
+
+enum Role {
+  LEAD
+  MEMBRE
+}
+
+enum Category {
+  GANG
+  ORGA
+}
