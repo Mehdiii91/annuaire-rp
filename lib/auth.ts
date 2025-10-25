@@ -1,9 +1,14 @@
 import { headers } from "next/headers";
 
-export function isAdmin() {
-  // on récupère les cookies depuis les headers de la requête API
-  const hdrs = headers();
-  // ⚠️ ici faire hdrs.get() est autorisé dans un handler API (contrairement au composant react serveur)
+export async function isAdmin() {
+  // ⚙️ headers() est asynchrone, donc on attend sa résolution
+  const hdrs = await headers();
+
+  // ✅ ici on peut utiliser .get() car hdrs est bien un Headers et plus une Promise
   const rawCookie = hdrs.get("cookie") || "";
-  return rawCookie.split(";").some((part) => part.trim() === "admin=1");
+
+  // 🧠 vérifie si le cookie contient "admin=1"
+  const isAdmin = rawCookie.split(";").some((part) => part.trim() === "admin=1");
+
+  return isAdmin;
 }
