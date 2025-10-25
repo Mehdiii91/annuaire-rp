@@ -1,15 +1,21 @@
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const preferredRegion = "auto";
+
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// util pour récupérer l'id proprement même sur Vercel
 function extractIdFromUrl(req: Request) {
   const url = new URL(req.url);
-  const parts = url.pathname.split("/").filter(Boolean); // ["api","groups","123"]
+  const parts = url.pathname.split("/").filter(Boolean); // ["api","groups","1"]
   const rawId = parts[parts.length - 1];
   const idNum = Number(rawId);
+
   if (!rawId || Number.isNaN(idNum)) {
     return { ok: false, rawId };
   }
+
   return { ok: true, id: idNum };
 }
 
@@ -70,7 +76,7 @@ export async function DELETE(req: Request) {
       );
     }
 
-    // supprime d'abord les membres (au cas où relation cascade ne se déclenche pas)
+    // On supprime d'abord les membres manuellement pour être safe
     await prisma.member.deleteMany({
       where: { groupId: parsed.id },
     });

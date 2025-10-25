@@ -1,3 +1,8 @@
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const preferredRegion = "auto";
+
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 // import { isAdmin } from "@/lib/auth";
