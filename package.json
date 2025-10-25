@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
+  "dev": "next dev",
+  "build": "prisma generate && next build",
+  "start": "next start"
+}
+,
   "dependencies": {
     "@prisma/client": "^6.18.0",
     "next": "16.0.0",
@@ -25,4 +25,5 @@
     "tailwindcss": "^4",
     "typescript": "^5"
   }
+  
 }
