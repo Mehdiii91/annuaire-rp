@@ -1,34 +1,94 @@
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const preferredRegion = "auto";
+
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import AdminClient from "./AdminClient";
-import TopNav from "@/components/TopNav";
-import { protectAdminPage } from "@/lib/auth";
 
-export default async function AdminPage() {
-  protectAdminPage();
+function extractIdFromUrl(req: Request) {
+  const url = new URL(req.url);
+  const parts = url.pathname.split("/").filter(Boolean);
+  const rawId = parts[parts.length - 1];
+  const idNum = Number(rawId);
+  if (!rawId || Number.isNaN(idNum)) {
+    return { ok: false, rawId };
+  }
+  return { ok: true, id: idNum };
+}
 
-  const groups = await prisma.group.findMany({
-    orderBy: { name: "asc" },
-    include: {
-      members: {
-        orderBy: [{ role: "asc" }, { fullName: "asc" }],
+// GET /api/groups/:id -> récupère un groupe + membres
+export async function GET(req: Request) {
+  try {
+    const parsed = extractIdFromUrl(req);
+    if (!parsed.ok) {
+      return NextResponse.json(
+        { error: "invalid group id", got: parsed.rawId },
+        { status: 400 }
+      );
+    }
+
+    const group = await prisma.group.findUnique({
+      where: { id: parsed.id },
+      select: {
+        id: true,
+        name: true,
+        category: true,
+        members: {
+          orderBy: [{ role: "asc" }, { fullName: "asc" }],
+          select: {
+            id: true,
+            fullName: true,
+            role: true,
+            characterId: true,
+          },
+        },
       },
-    },
-  });
+    });
 
-  return (
-    <main className="min-h-screen bg-gray-950 text-white p-6 space-y-8">
-      <TopNav />
+    if (!group) {
+      return NextResponse.json(
+        { error: "group not found", id: parsed.id },
+        { status: 404 }
+      );
+    }
 
-      <section className="max-w-5xl mx-auto space-y-8">
-        <header className="space-y-2 text-white">
-          <h1 className="text-2xl font-bold">Panel Admin</h1>
-          <p className="text-sm text-gray-400">
-            Gère les groupes, les membres, les catégories.
-          </p>
-        </header>
+    return NextResponse.json(group, { status: 200 });
+  } catch (err: any) {
+    console.error("GET /api/groups/[id] failed:", err);
+    return NextResponse.json(
+        { error: "server error", details: String(err) },
+        { status: 500 }
+    );
+  }
+}
 
-        <AdminClient initialGroups={groups} />
-      </section>
-    </main>
-  );
+// DELETE /api/groups/:id -> supprime un groupe + ses membres
+export async function DELETE(req: Request) {
+  try {
+    const parsed = extractIdFromUrl(req);
+    if (!parsed.ok) {
+      return NextResponse.json(
+        { error: "invalid group id", got: parsed.rawId },
+        { status: 400 }
+      );
+    }
+
+    // supprimer les membres d'abord
+    await prisma.member.deleteMany({
+      where: { groupId: parsed.id },
+    });
+
+    // puis le groupe
+    await prisma.group.delete({
+      where: { id: parsed.id },
+    });
+
+    return NextResponse.json({ ok: true }, { status: 200 });
+  } catch (err: any) {
+    console.error("DELETE /api/groups/[id] failed:", err);
+    return NextResponse.json(
+      { error: "server error", details: String(err) },
+      { status: 500 }
+    );
+  }
 }
